@@ -27,58 +27,28 @@ class BuilderProcessor(
         return ret
     }
 
-
     inner class BuilderVisitor : KSVisitorVoid() {
         @KspExperimental
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
 
-            classDeclaration.primaryConstructor!!.accept(this, data)
+            val activityClass = ClassName(classDeclaration.getPackageName(), classDeclaration.simpleName.asString())
 
-            //包名
-            val packageName = classDeclaration.containingFile!!.packageName.asString()
-
-            //File
-            val fileSpec = FileSpec.builder(packageName, "${classDeclaration.simpleName.asString()}_Binder")
-            //Class
-            val typeSpec = TypeSpec.classBuilder("${classDeclaration.simpleName.asString()}_Binder")
-
-            val activityClass = ClassName(packageName, classDeclaration.simpleName.asString())
             //function
             val functionSpec = FunSpec.builder("bindView").addParameter("activity", activityClass)
                 .addAnnotation(JvmStatic::class.java)
 
-            val companion = TypeSpec.companionObjectBuilder()
-
-
             classDeclaration.getAllProperties().forEach { property ->
-
                 property.annotations.forEach {
-                    if ( it.shortName.asString() == "findView"){
+                    if (it.shortName.asString() == "findView") {
                         functionSpec.addStatement("activity.${property.simpleName.asString()} = activity.findViewById(${it.arguments[0].value})")
                     }
                 }
-
             }
 
-
-            companion.addFunction(functionSpec.build())
-            typeSpec.addType(companion.build())
-            fileSpec.addType(typeSpec.build())
-
-            val file = codeGenerator.createNewFile(
-                Dependencies.ALL_FILES,
-                fileSpec.packageName,
-                fileSpec.name
-            )
-            file.use {
-                val content = fileSpec.build().toString().toByteArray()
-                it.write(content)
-            }
-
+            writeFile(createFile(classDeclaration, functionSpec))
         }
 
         override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
-
 
         }
 
@@ -88,7 +58,32 @@ class BuilderProcessor(
         }
     }
 
+    fun createFile(classDeclaration: KSClassDeclaration, funSpec: FunSpec.Builder): FileSpec {
 
+        //File
+        val fileSpec = FileSpec.builder(classDeclaration.getPackageName(), "${classDeclaration.simpleName.asString()}_Binder")
+        //Class
+        val typeSpec = TypeSpec.classBuilder("${classDeclaration.simpleName.asString()}_Binder")
+        //Companion
+        val companion = TypeSpec.companionObjectBuilder()
+
+        companion.addFunction(funSpec.build())
+        typeSpec.addType(companion.build())
+        fileSpec.addType(typeSpec.build())
+        return fileSpec.build()
+    }
+
+    fun writeFile(fileSpec: FileSpec) {
+        val file = codeGenerator.createNewFile(
+            Dependencies.ALL_FILES,
+            fileSpec.packageName,
+            fileSpec.name
+        )
+        file.use {
+            val content = fileSpec.toString().toByteArray()
+            it.write(content)
+        }
+    }
 }
 
 class BuilderProcessorProvider : SymbolProcessorProvider {
@@ -99,3 +94,4 @@ class BuilderProcessorProvider : SymbolProcessorProvider {
     }
 }
 
+fun KSClassDeclaration.getPackageName():String = this.containingFile!!.packageName.asString()
