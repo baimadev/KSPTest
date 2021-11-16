@@ -11,14 +11,16 @@ import com.holderzone.store.processor.ButterKnife
 class MainActivity : AppCompatActivity() {
 
     @findView(R.id.tv_hello)
-    var textView: TextView? = null
+    var textView1: TextView? = null
 
+    @findView(R.id.tv_hello)
+    var textView2: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         ButterKnife.bindView(this)
-        textView?.setText("bindview")
+        textView1?.setText("bindview")
     }
 }

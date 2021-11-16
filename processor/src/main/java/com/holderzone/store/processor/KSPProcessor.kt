@@ -32,33 +32,17 @@ class BuilderProcessor(
         @KspExperimental
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
 
-            //classDeclaration.primaryConstructor!!.accept(this, data)
+            classDeclaration.primaryConstructor!!.accept(this, data)
 
-            classDeclaration.getAllProperties().forEach {
-                //相当于回调visitPropertyDeclaration
-                it.accept(this, data)
-            }
-        }
-
-        override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
-
-
-        }
-
-        @KspExperimental
-        override fun visitPropertyDeclaration(property: KSPropertyDeclaration, data: Unit) {
-            super.visitPropertyDeclaration(property, data)
-
-            val parent = property.parentDeclaration as KSClassDeclaration
             //包名
-            val packageName = parent.containingFile!!.packageName.asString()
+            val packageName = classDeclaration.containingFile!!.packageName.asString()
 
             //File
-            val fileSpec = FileSpec.builder(packageName, "${parent.simpleName.asString()}_Binder")
+            val fileSpec = FileSpec.builder(packageName, "${classDeclaration.simpleName.asString()}_Binder")
             //Class
-            val typeSpec = TypeSpec.classBuilder("${parent.simpleName.asString()}_Binder")
+            val typeSpec = TypeSpec.classBuilder("${classDeclaration.simpleName.asString()}_Binder")
 
-            val activityClass = ClassName(packageName, parent.simpleName.asString())
+            val activityClass = ClassName(packageName, classDeclaration.simpleName.asString())
             //function
             val functionSpec = FunSpec.builder("bindView").addParameter("activity", activityClass)
                 .addAnnotation(JvmStatic::class.java)
@@ -66,16 +50,20 @@ class BuilderProcessor(
             val companion = TypeSpec.companionObjectBuilder()
 
 
+            classDeclaration.getAllProperties().forEach { property ->
 
-            property.getAnnotationsByType(findView::class).forEach {
-                functionSpec.addStatement("activity.${property.simpleName.asString()} = activity.findViewById(${it.value})")
+                property.annotations.forEach {
+                    if ( it.shortName.asString() == "findView"){
+                        functionSpec.addStatement("activity.${property.simpleName.asString()} = activity.findViewById(${it.arguments[0].value})")
+                    }
+                }
+
             }
 
 
             companion.addFunction(functionSpec.build())
             typeSpec.addType(companion.build())
             fileSpec.addType(typeSpec.build())
-
 
             val file = codeGenerator.createNewFile(
                 Dependencies.ALL_FILES,
@@ -86,6 +74,17 @@ class BuilderProcessor(
                 val content = fileSpec.build().toString().toByteArray()
                 it.write(content)
             }
+
+        }
+
+        override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
+
+
+        }
+
+
+        override fun visitPropertyDeclaration(property: KSPropertyDeclaration, data: Unit) {
+            super.visitPropertyDeclaration(property, data)
         }
     }
 
