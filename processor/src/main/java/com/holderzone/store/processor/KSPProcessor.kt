@@ -40,7 +40,8 @@ class BuilderProcessor(
             classDeclaration.getAllProperties().forEach { property ->
                 property.annotations.forEach {
                     if (it.shortName.asString() == "findView") {
-                        functionSpec.addStatement("activity.${property.simpleName.asString()} = activity.findViewById(${it.arguments[0].value})")
+                        val resValue = it.arguments.find{ it.name!!.asString() == "resId" }!!.value
+                        functionSpec.addStatement("activity.${property.simpleName.asString()} = activity.findViewById($resValue)")
                     }
                 }
             }
@@ -59,7 +60,6 @@ class BuilderProcessor(
     }
 
     fun createFile(classDeclaration: KSClassDeclaration, funSpec: FunSpec.Builder): FileSpec {
-
         //File
         val fileSpec = FileSpec.builder(classDeclaration.getPackageName(), "${classDeclaration.simpleName.asString()}_Binder")
         //Class

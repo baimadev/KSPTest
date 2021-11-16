@@ -8,4 +8,4 @@ annotation class MyClass
 
 @Target(AnnotationTarget.FIELD)
 @Retention(AnnotationRetention.SOURCE)
-annotation class findView(val value: Int = -1)
+annotation class findView(val resId: Int = -1)
