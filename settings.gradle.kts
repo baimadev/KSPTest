@@ -1,3 +1,4 @@
+include(":xrouter")
 
 pluginManagement {
     repositories {
@@ -10,7 +11,7 @@ dependencyResolutionManagement {
 
     repositories {
         google()
-        mavenCentral()
+        //mavenCentral()
         jcenter() // Warning: this repository is going to shut down soon
     }
 }
