@@ -24,6 +24,7 @@ object XRouter {
     }
 
     public fun navigation(route:String) {
+        if (mContext == null) return
         if (!hashMap.containsKey(route)) return;
         val intent = Intent(mContext, hashMap.get(route))
         Log.d("xia","jump")

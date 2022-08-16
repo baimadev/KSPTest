@@ -18,11 +18,10 @@ class BuilderProcessor(
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
 
-        //获取所有带注释的symbol（类、方法、属性。。。）
+        //获取所有带Route注解的symbol（类、方法、属性。。。）
         val symbols = resolver.getSymbolsWithAnnotation(Route::class.java.name)
-        val ret = symbols.filter { !it.validate() }.toList()
 
-        // HashMap<String, Class<out Activity>>
+        //使用kotlinpoet构建类型 HashMap<String, Class<out Activity>>
         val activity = ClassName("android.app", "Activity")
         val hashMap = ClassName("java.util", "HashMap")
         val classK = ClassName("java.lang", "Class")
@@ -30,6 +29,7 @@ class BuilderProcessor(
         val classActivity = classK.parameterizedBy(WildcardTypeName.producerOf(activity))
         val hashMapSC = hashMap.parameterizedBy(stringK,classActivity)
 
+        //使用kotlinpoet构建类型 HashMap<String, Class<out Activity>>
         functionSpec = FunSpec
             .builder("loadInfo")
             .addParameter(ParameterSpec.builder("map", hashMapSC).build())
@@ -49,7 +49,8 @@ class BuilderProcessor(
                 }
             }
             //.forEach { it.accept(BuilderVisitor(), Unit) }
-        return ret
+
+        return symbols.filter { !it.validate() }.toList()
     }
 
 
@@ -62,16 +63,6 @@ class BuilderProcessor(
     inner class BuilderVisitor : KSVisitorVoid() {
         @KspExperimental
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
-
-            val activityClass = ClassName(classDeclaration.getPackageName(), classDeclaration.simpleName.asString())
-            classDeclaration.annotations.forEach {
-                if (it.shortName.asString() == "Route") {
-                    val resValue = it.arguments.find{ it.name!!.asString() == "route" }!!.value
-                    val string1 = "map[\"${resValue}\"]"
-                    val string2 = " = ${activityClass}::class.java"
-                    functionSpec?.addStatement(string1+string2)
-                }
-            }
 
         }
 
@@ -90,11 +81,6 @@ class BuilderProcessor(
         val fileSpec = FileSpec.builder(packageName, "XRouterPathCollector")
         //Class
         val typeSpec = TypeSpec.classBuilder("XRouterPathCollector")
-        //Companion
-        //val companion = TypeSpec.companionObjectBuilder()
-
-//        companion.addFunction(funSpec.build())
-//        typeSpec.addType(companion.build())
         typeSpec.addFunction(funSpec.build())
         fileSpec.addType(typeSpec.build())
         return fileSpec.build()
